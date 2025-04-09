@@ -35,7 +35,8 @@ class GatewayUser(HttpUser):
             "query": query,
             "variables": variables
         }
-        with self.client.post(self.host, json=body, headers=headers, name=query_file_name, catch_response=True) as response:
+        with self.client.post(self.host, json=body, headers=headers, name=query_file_name,
+                              catch_response=True) as response:
             # GQL requests fail in body not just in status so need to check for any errors
             if response.status_code == 200:
                 response_json = json.loads(response.text)
@@ -55,6 +56,7 @@ class GatewayUser(HttpUser):
     @task
     def visit_contract_page(self):
         contract_id = self.get_random_variable('contractId')
+        # Common suite gql requests de-scoped, e.g. features, IdentityResources
         requests = [
             ('getContractWithAttachments', {"contractId": contract_id}),
             ('getContract', {"contractId": contract_id, "groupAdmin": "PRESENTATIONAL"}),
@@ -64,7 +66,8 @@ class GatewayUser(HttpUser):
                                       "offset": 0, "targetType": "CONTRIBUTOR"}),
             ('getContractAdvancesByStatus', {"contractId": contract_id,
                                              "status": "IN_REVIEW", "limit": 20, "offset": 0}),
-            ('getContractAdvancesPaid', {"contractId": "546120", "limit": 20, "offset": 0})
+            ('getContractAdvancesPaid', {"contractId": contract_id, "limit": 20, "offset": 0}),
+            ('getContractAdvancesPending', {"contractId": contract_id, "limit": 20, "offset": 0})
         ]
 
         with ThreadPoolExecutor() as executor:
@@ -72,5 +75,5 @@ class GatewayUser(HttpUser):
                 executor.submit(self.send_graphql_request, query_file, variables)
                 for query_file, variables in requests
             ]
-            for future in futures:
-                future.result()
+        for future in futures:
+            future.result()
