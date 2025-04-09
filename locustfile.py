@@ -1,4 +1,6 @@
+import json
 import os
+import random
 from concurrent.futures import ThreadPoolExecutor
 
 from locust import HttpUser, task, between
@@ -25,16 +27,28 @@ class GatewayUser(HttpUser):
         }
         with open(f'graphqlQueries/{query_file_name}.gql', 'r') as file:
             query = file.read()
+        variables = self.assign_random_values(query_file_name, variables)
         body = {
             "query": query,
             "variables": variables
         }
         self.client.post(self.host, json=body, headers=headers, name=query_file_name)
 
+    @staticmethod
+    def assign_random_values(query_file_name, variables):
+        with open('requestVariables.json', 'r') as file:
+            request_variables = json.load(file)
+        for key, value in variables.items():
+            if isinstance(value, str) and "RANDOM_VALUE" in value:
+                available_values = request_variables[query_file_name][key]
+                random_value = random.choice(available_values)
+                variables[key] = random_value
+        return variables
+
     @task
     def visit_contract_page(self):
         requests = [
-            ('getContract', {"contractId": "544622", "groupAdmin": "PRESENTATIONAL"}),
+            ('getContract', {"contractId": "RANDOM_VALUE", "groupAdmin": "PRESENTATIONAL"}),
             ('getTransactionTypesWithGroups', {"groupAdmin": "PRESENTATIONAL"}),
         ]
 
