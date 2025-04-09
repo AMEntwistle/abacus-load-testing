@@ -24,6 +24,7 @@ class GatewayUser(HttpUser):
             "apollographql-client-name": "AbacusPerformanceTest",
             "orchard-profile-type": "AbacusProfile",
             "orchard-profile-uuid": "277f57b2-937c-42d0-8cdb-7f05d3f64155",
+            "Cache-Control": "no-cache"
         }
         with open(f'graphqlQueries/{query_file_name}.gql', 'r') as file:
             query = file.read()
