@@ -28,7 +28,6 @@ class GatewayUser(HttpUser):
         }
         with open(f'graphqlQueries/{query_file_name}.gql', 'r') as file:
             query = file.read()
-        variables = self.assign_random_values(query_file_name, variables)
         body = {
             "query": query,
             "variables": variables
@@ -36,20 +35,20 @@ class GatewayUser(HttpUser):
         self.client.post(self.host, json=body, headers=headers, name=query_file_name)
 
     @staticmethod
-    def assign_random_values(query_file_name, variables):
+    def get_random_variable(key_name):
         with open('requestVariables.json', 'r') as file:
-            request_variables = json.load(file)
-        for key, value in variables.items():
-            if isinstance(value, str) and "RANDOM_VALUE" in value:
-                available_values = request_variables[query_file_name][key]
-                random_value = random.choice(available_values)
-                variables[key] = random_value
-        return variables
+            data = json.load(file)
+            values = data.get(key_name, [])
+            if not values:
+                raise ValueError(f"No {key_name}  found in requestVariables.json")
+            return random.choice(values)
 
     @task
     def visit_contract_page(self):
+        contract_id = self.get_random_variable('contractId')
         requests = [
-            ('getContract', {"contractId": "RANDOM_VALUE", "groupAdmin": "PRESENTATIONAL"}),
+            ('getContractWithAttachments', {"contractId": contract_id}),
+            ('getContract', {"contractId": contract_id, "groupAdmin": "PRESENTATIONAL"}),
             ('getTransactionTypesWithGroups', {"groupAdmin": "PRESENTATIONAL"}),
         ]
 
