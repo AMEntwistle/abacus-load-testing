@@ -16,6 +16,8 @@ class GatewayUser(HttpUser):
     def __init__(self, environment):
         super().__init__(environment)
         self.bearer_token = os.environ.get('BEARER_TOKEN')
+        self.profile_id = os.environ.get('PROFILE_ID')
+        self.profile_uuid = os.environ.get('PROFILE_UUID')
 
     def send_graphql_request(self, query_file_name, variables):
         headers = {
@@ -23,7 +25,8 @@ class GatewayUser(HttpUser):
             "Authorization": f'{self.bearer_token}',
             "apollographql-client-name": "AbacusPerformanceTest",
             "orchard-profile-type": "AbacusProfile",
-            "orchard-profile-uuid": "277f57b2-937c-42d0-8cdb-7f05d3f64155",
+            "orchard-profile-id": f"{self.profile_id}",
+            "orchard-profile-uuid": f"{self.profile_uuid}",
             "Cache-Control": "no-cache"
         }
         with open(f'graphqlQueries/{query_file_name}.gql', 'r') as file:
@@ -32,8 +35,8 @@ class GatewayUser(HttpUser):
             "query": query,
             "variables": variables
         }
-        with(self.client.post(self.host, json=body, headers=headers, name=query_file_name,
-                              catch_response=True) as response):
+        with self.client.post(self.host, json=body, headers=headers, name=query_file_name, catch_response=True) as response:
+            # GQL requests fail in body not just in status so need to check for any errors
             if response.status_code == 200:
                 response_json = json.loads(response.text)
                 if 'errors' in response_json:

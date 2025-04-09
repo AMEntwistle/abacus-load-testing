@@ -5,7 +5,7 @@
 Follow these steps to install and run Locust for this repository:
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.12.6 (do not use 3.13.x due to a compatability issue)
 - `pip` (Python package manager)
 - `virtualenv` (optional but recommended)
 
