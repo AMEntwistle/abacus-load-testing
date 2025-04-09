@@ -19,7 +19,16 @@ class GatewayUser(HttpUser):
         self.profile_id = os.environ.get('PROFILE_ID')
         self.profile_uuid = os.environ.get('PROFILE_UUID')
 
-    def send_graphql_request(self, query_file_name, variables):
+    def send_page_requests(self, requests, page_name):
+        with ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(self.send_graphql_request, query_file, variables, page_name)
+                for query_file, variables in requests
+            ]
+        for future in futures:
+            future.result()
+
+    def send_graphql_request(self, query_file_name, variables, page_name):
         headers = {
             "Content-Type": "application/json",
             "Authorization": f'{self.bearer_token}',
@@ -35,7 +44,10 @@ class GatewayUser(HttpUser):
             "query": query,
             "variables": variables
         }
-        with self.client.post(self.host, json=body, headers=headers, name=query_file_name,
+        name = f"{page_name}_{query_file_name}"
+        if os.environ.get('GROUP_BY_PAGE').upper() == "TRUE":
+            name = page_name
+        with self.client.post(self.host, json=body, headers=headers, name=name,
                               catch_response=True) as response:
             # GQL requests fail in body not just in status so need to check for any errors
             if response.status_code == 200:
@@ -53,8 +65,9 @@ class GatewayUser(HttpUser):
                 raise ValueError(f"No {key_name}  found in requestVariables.json")
             return random.choice(values)
 
-    @task
+    @task(5)
     def visit_contract_page(self):
+        page_name = "contractPage"
         contract_id = self.get_random_variable('contractId')
         # Common suite gql requests de-scoped, e.g. features, IdentityResources
         requests = [
@@ -70,10 +83,15 @@ class GatewayUser(HttpUser):
             ('getContractAdvancesPending', {"contractId": contract_id, "limit": 20, "offset": 0})
         ]
 
-        with ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(self.send_graphql_request, query_file, variables)
-                for query_file, variables in requests
-            ]
-        for future in futures:
-            future.result()
+        self.send_page_requests(requests, page_name)
+
+    @task(5)
+    def visit_account_page(self):
+        page_name = "accountPage"
+        account_id = self.get_random_variable('accountId')
+        requests = [
+            ('getAccountFullDetail', {"accountId": account_id})
+        ]
+
+        self.send_page_requests(requests, page_name)
+
