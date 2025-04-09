@@ -32,7 +32,13 @@ class GatewayUser(HttpUser):
             "query": query,
             "variables": variables
         }
-        self.client.post(self.host, json=body, headers=headers, name=query_file_name)
+        with(self.client.post(self.host, json=body, headers=headers, name=query_file_name,
+                              catch_response=True) as response):
+            if response.status_code == 200:
+                response_json = json.loads(response.text)
+                if 'errors' in response_json:
+                    status_code = response_json['errors'][0]['message'].split(":", 1)[0]
+                    response.failure(f"GraphQL error: {status_code}")
 
     @staticmethod
     def get_random_variable(key_name):
@@ -55,6 +61,7 @@ class GatewayUser(HttpUser):
                                       "offset": 0, "targetType": "CONTRIBUTOR"}),
             ('getContractAdvancesByStatus', {"contractId": contract_id,
                                              "status": "IN_REVIEW", "limit": 20, "offset": 0}),
+            ('getContractAdvancesPaid', {"contractId": "546120", "limit": 20, "offset": 0})
         ]
 
         with ThreadPoolExecutor() as executor:
