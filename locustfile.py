@@ -52,7 +52,9 @@ class GatewayUser(HttpUser):
             ('getTransactionTypesWithGroups', {"groupAdmin": "PRESENTATIONAL"}),
             ('getStores', {}),
             ('getContractPartyList', {"includeOnlySchedules": False, "contractId": contract_id, "limit": 100,
-                                      "offset": 0, "targetType": "CONTRIBUTOR"})
+                                      "offset": 0, "targetType": "CONTRIBUTOR"}),
+            ('getContractAdvancesByStatus', {"contractId": contract_id,
+                                             "status": "IN_REVIEW", "limit": 20, "offset": 0}),
         ]
 
         with ThreadPoolExecutor() as executor:
