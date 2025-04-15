@@ -90,8 +90,9 @@ class GatewayUser(HttpUser):
         page_name = "accountPage"
         account_id = self.get_random_variable('accountId')
         requests = [
-            ('getAccountFullDetail', {"accountId": account_id})
+            ('getAccountById', {"accountId": account_id}),
+            ('getAccountFullDetail', {"accountId": account_id}),
+            ('getAccountLedgerList', {"accountId": account_id, "limit": 20, "offset": 0})
         ]
 
         self.send_page_requests(requests, page_name)
-
